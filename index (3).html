@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard Flotta & Prenotazioni</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Bootstrap 5 CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    crossorigin="anonymous"
+  />
+
+  <!-- Chart.js -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+  ></script>
+
+  <style>
+    :root {
+      --bg-main: #0f1115;
+      --bg-card: #181b22;
+      --bg-sidebar: #12151c;
+      --border-subtle: #262a33;
+      --text-primary: #f5f5f7;
+      --text-muted: #9ca3af;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.15);
+      --danger: #ef4444;
+      --success: #22c55e;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #1e293b 0, #020617 55%);
+      color: var(--text-primary);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+    }
+
+    .dashboard-shell {
+      padding: 1.5rem 1rem 1.5rem;
+    }
+
+    .dashboard-header {
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      margin-bottom: 1rem;
+    }
+
+    .dashboard-header h3 {
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+
+    .kpi-card {
+      border-radius: 1rem;
+      background: radial-gradient(circle at top left, #1f2937 0, #020617 55%);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
+      height: 100%;
+    }
+
+    .kpi-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .kpi-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .kpi-sub,
+    .kpi-prev {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .kpi-diff {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .kpi-diff.positive {
+      color: var(--success);
+    }
+
+    .kpi-diff.negative {
+      color: var(--danger);
+    }
+
+    .kpi-diff.neutral {
+      color: var(--text-muted);
+    }
+
+    .sidebar {
+      background: linear-gradient(180deg, #020617 0%, #020617 100%);
+      border-radius: 1.2rem;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      padding: 1rem;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.9);
+      height: 100%;
+    }
+
+    .sidebar-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .filter-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.15rem;
+    }
+
+    .form-select,
+    .form-control {
+      background-color: #020617;
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.85rem;
+    }
+
+    .form-select:focus,
+    .form-control:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent-soft);
+      background-color: #020617;
+      color: var(--text-primary);
+    }
+
+    .accordion-button {
+      background-color: #020617;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.4rem 0.6rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .accordion-button::after {
+      filter: invert(1);
+    }
+
+    .accordion-button:not(.collapsed) {
+      background-color: #020617;
+      color: var(--accent);
+      box-shadow: none;
+    }
+
+    .accordion-item {
+      border: none;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .accordion-body {
+      padding: 0.4rem 0.6rem 0.6rem;
+      background-color: #020617;
+    }
+
+    .chart-container {
+      background: radial-gradient(circle at top, #111827 0, #020617 55%);
+      border-radius: 1.2rem;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.9);
+      padding: 1rem 1.2rem 1.5rem;
+      height: 100%;
+    }
+
+    .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.8rem;
+      border-radius: 999px;
+    }
+
+    .btn-outline-secondary {
+      border-color: rgba(148, 163, 184, 0.6);
+      color: var(--text-muted);
+    }
+
+    .btn-outline-secondary:hover {
+      background-color: rgba(148, 163, 184, 0.1);
+      color: var(--text-primary);
+    }
+
+    .btn-outline-danger {
+      border-radius: 999px;
+      font-size: 0.8rem;
+    }
+
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background: #ffffff;
+        color: #000000;
+      }
+      .sidebar,
+      .chart-container,
+      .kpi-card {
+        box-shadow: none !important;
+        background: #ffffff !important;
+        border-color: #dddddd !important;
+        color: #000000 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid dashboard-shell">
+    <!-- HEADER -->
+    <div class="dashboard-header d-flex justify-content-between align-items-center">
+      <div>
+        <h3 class="mb-0">Dashboard Flotta &amp; Prenotazioni</h3>
+        <small class="text-muted">Analisi flotta 2024–2026 e prenotazioni 2025</small>
+      </div>
+      <div class="no-print">
+        <button id="exportCsvBtn" class="btn btn-outline-secondary btn-sm btn-icon me-2">
+          <span>⬇️</span><span>Esporta CSV</span>
+        </button>
+        <button id="printPdfBtn" class="btn btn-outline-secondary btn-sm btn-icon">
+          <span>🖨️</span><span>Stampa / PDF</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <!-- SIDEBAR FILTRI -->
+      <div class="col-12 col-lg-3 no-print">
+        <div class="sidebar h-100">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="sidebar-title">Filtri</div>
+            <button id="clearFiltersBtn" class="btn btn-outline-danger btn-sm">
+              🔄 Pulisci
+            </button>
+          </div>
+
+          <div class="accordion accordion-flush" id="filtersAccordion">
+            <!-- Anno -->
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingYear">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseYear"
+                        aria-expanded="false" aria-controls="collapseYear">
+                  Anno
+                </button>
+              </h2>
+              <div id="collapseYear" class="accordion-collapse collapse"
+                   aria-labelledby="headingYear" data-bs-parent="#filtersAccordion">
+                <div class="accordion-body">
+                  <label for="yearFilter" class="filter-label">Anno (multi)</label>
+                  <select id="yearFilter" class="form-select form-select-sm" multiple>
+                    <option value="ALL" selected>Tutti</option>
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <option value="2026">2026</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mese -->
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingMonth">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseMonth"
+                        aria-expanded="false" aria-controls="collapseMonth">
+                  Mese
+                </button>
+              </h2>
+              <div id="collapseMonth" class="accordion-collapse collapse"
+                   aria-labelledby="headingMonth" data-bs-parent="#filtersAccordion">
+                <div class="accordion-body">
+                  <label for="monthFilter" class="filter-label">Mese (multi)</label>
+                  <select id="monthFilter" class="form-select form-select-sm" multiple></select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gruppo veicolo -->
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingGroup">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseGroup"
+                        aria-expanded="false" aria-controls="collapseGroup">
+                  Gruppo veicolo
+                </button>
+              </h2>
+              <div id="collapseGroup" class="accordion-collapse collapse"
+                   aria-labelledby="headingGroup" data-bs-parent="#filtersAccordion">
+                <div class="accordion-body">
+                  <label for="groupFilter" class="filter-label">Gruppo (multi)</label>
+                  <select id="groupFilter" class="form-select form-select-sm" multiple></select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Acquisizione -->
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingAcquisition">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseAcquisition"
+                        aria-expanded="false" aria-controls="collapseAcquisition">
+                  Acquisizione
+                </button>
+              </h2>
+              <div id="collapseAcquisition" class="accordion-collapse collapse"
+                   aria-labelledby="headingAcquisition" data-bs-parent="#filtersAccordion">
+                <div class="accordion-body">
+                  <label for="acquisitionFilter" class="filter-label">Acquisizione (multi)</label>
+                  <select id="acquisitionFilter" class="form-select form-select-sm" multiple></select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stazione -->
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingStation">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseStation"
+                        aria-expanded="false" aria-controls="collapseStation">
+                  Stazione
+                </button>
+              </h2>
+              <div id="collapseStation" class="accordion-collapse collapse"
+                   aria-labelledby="headingStation" data-bs-parent="#filtersAccordion">
+                <div class="accordion-body">
+                  <label for="stationFilter" class="filter-label">Stazione (multi)</label>
+                  <select id="stationFilter" class="form-select form-select-sm" multiple></select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Proiezione 2026 -->
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingProjection">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseProjection"
+                        aria-expanded="false" aria-controls="collapseProjection">
+                  Proiezione 2026
+                </button>
+              </h2>
+              <div id="collapseProjection" class="accordion-collapse collapse"
+                   aria-labelledby="headingProjection" data-bs-parent="#filtersAccordion">
+                <div class="accordion-body">
+                  <label for="projectionSelect" class="filter-label">Proiezione 2026</label>
+                  <select id="projectionSelect" class="form-select form-select-sm">
+                    <option value="0.05">+5%</option>
+                    <option value="0.10" selected>+10%</option>
+                    <option value="0.15">+15%</option>
+                    <option value="0.20">+20%</option>
+                  </select>
+                  <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">
+                    Applicata a tutti i KPI sui mesi 2026.
+                  </small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- KPI + GRAFICO -->
+      <div class="col-12 col-lg-9">
+        <!-- KPI ROW 1 -->
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">🚗 Dimensione flotta (media)</div>
+              </div>
+              <div class="kpi-value" id="kpi-fleet-current">–</div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-fleet-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-fleet-diff">–</div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">💶 Canone imponibile</div>
+              </div>
+              <div class="kpi-value" id="kpi-canone-current">–</div>
+              <div class="kpi-sub mb-1">
+                Canone ivato: <span id="kpi-canone-ivato-current">–</span>
+              </div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-canone-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-canone-diff">–</div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">🛡️ Assicurazione</div>
+              </div>
+              <div class="kpi-value" id="kpi-assicurazione-current">–</div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-assicurazione-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-assicurazione-diff">–</div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">💰 Costo totale</div>
+              </div>
+              <div class="kpi-value" id="kpi-costo-current">–</div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-costo-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-costo-diff">–</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI ROW 2 -->
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">💸 Revenue</div>
+              </div>
+              <div class="kpi-value" id="kpi-revenue-current">–</div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-revenue-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-revenue-diff">–</div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">☀️ Revenue / day</div>
+              </div>
+              <div class="kpi-value" id="kpi-revday-current">–</div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-revday-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-revday-diff">–</div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">📝 Numero prenotazioni</div>
+              </div>
+              <div class="kpi-value" id="kpi-bookings-current">–</div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-bookings-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-bookings-diff">–</div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">🚙 Noleggiati</div>
+              </div>
+              <div class="kpi-value" id="kpi-noleggiati-current">–</div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-noleggiati-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-noleggiati-diff">–</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- GRAFICO -->
+        <div class="row mb-4">
+          <div class="col-12">
+            <div class="chart-container" style="min-height: 320px;">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Andamento mensile</h6>
+                <small class="text-muted">Dimensione flotta, costo totale, revenue, noleggiati</small>
+              </div>
+              <canvas id="mainChart" height="90"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    crossorigin="anonymous"
+  ></script>
+
+  <script>
+    // =========================
+    // CONFIG & GLOBAL STATE
+    // =========================
+    const VEHICLE_GROUPS = [
+      "Commercial Van",
+      "Large",
+      "Economy",
+      "Small",
+      "Mini",
+      "Premium",
+      "Suv",
+      "People Mover",
+      "Station Wagon",
+      "Cabriolet"
+    ];
+
+    const RAW_GROUP_MAP = {
+      "COMMERCIAL VAN": "Commercial Van",
+      "COMM VAN": "Commercial Van",
+      "COMMERCIALVAN": "Commercial Van",
+      "COMMERCIAL PEOPLE MOVER": "Commercial Van", // sempre Commercial Van
+
+      "LARGE": "Large",
+      "ECONOMY": "Economy",
+      "SMALL": "Small",
+      "MINI": "Mini",
+      "PREMIUM": "Premium",
+      "SUV": "Suv",
+
+      "PEOPLE MOVER": "People Mover",
+      "PEOPLEMOVER": "People Mover",
+
+      "STATION": "Station Wagon",
+      "STATION WAGON": "Station Wagon",
+
+      "CABRIOLET": "Cabriolet",
+      "CABRIO": "Cabriolet"
+    };
+
+    function canonicalGroup(raw) {
+      if (raw === null || raw === undefined) return null;
+      let s = String(raw).trim();
+      if (!s || s.toLowerCase() === "nan") return null;
+
+      const up = s.toUpperCase();
+      if (RAW_GROUP_MAP[up]) return RAW_GROUP_MAP[up];
+
+      if (VEHICLE_GROUPS.includes(s)) return s;
+
+      return null;
+    }
+
+    const MONTH_LABELS_IT = [
+      "Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
+      "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"
+    ];
+
+    let fleetData = [];
+    let fleetStationsData = [];
+    let bookingsData = [];
+
+    let baseAggregates = [];
+    let monthlyAggregates = [];
+    let mainChart = null;
+
+    // =========================
+    // INIT
+    // =========================
+    document.addEventListener("DOMContentLoaded", () => {
+      initMonthsFilter();
+      initGroupFilter();
+      loadData().then(() => {
+        initAcquisitionFilter();
+        initStationFilter();
+        initFilterEvents();
+        applyFiltersAndRender();
+      });
+
+      const clearBtn = document.getElementById("clearFiltersBtn");
+      if (clearBtn) clearBtn.addEventListener("click", resetFilters);
+
+      const exportBtn = document.getElementById("exportCsvBtn");
+      if (exportBtn) exportBtn.addEventListener("click", exportCsv);
+
+      const printBtn = document.getElementById("printPdfBtn");
+      if (printBtn) printBtn.addEventListener("click", () => window.print());
+    });
+
+    // =========================
+    // DATA LOADING
+    // =========================
+    async function loadData() {
+      try {
+        const [fleetRes, fleetStationsRes, bookingsRes] = await Promise.all([
+          fetch("fleetData_clean.json"),
+          fetch("fleetStations2025.json"),
+          fetch("bookings2025.json")
+        ]);
+
+        fleetData = await fleetRes.json();
+        fleetStationsData = await fleetStationsRes.json();
+        bookingsData = await bookingsRes.json();
+      } catch (err) {
+        console.error("Errore nel caricamento dei JSON:", err);
+        alert("Errore nel caricamento dei dati. Controlla i file JSON nella root del repo.");
+      }
+    }
+
+    // =========================
+    // FILTER INIT
+    // =========================
+    function initMonthsFilter() {
+      const monthSelect = document.getElementById("monthFilter");
+      if (!monthSelect) return;
+
+      // prima opzione: Tutti
+      const optAll = document.createElement("option");
+      optAll.value = "ALL";
+      optAll.textContent = "Tutti";
+      optAll.selected = true;
+      monthSelect.appendChild(optAll);
+
+      MONTH_LABELS_IT.forEach((label, idx) => {
+        const opt = document.createElement("option");
+        opt.value = String(idx + 1).padStart(2, "0");
+        opt.textContent = label;
+        monthSelect.appendChild(opt);
+      });
+    }
+
+    function initGroupFilter() {
+      const groupSelect = document.getElementById("groupFilter");
+      if (!groupSelect) return;
+
+      const optAll = document.createElement("option");
+      optAll.value = "ALL";
+      optAll.textContent = "Tutti";
+      optAll.selected = true;
+      groupSelect.appendChild(optAll);
+
+      VEHICLE_GROUPS.forEach(g => {
+        const opt = document.createElement("option");
+        opt.value = g;
+        opt.textContent = g;
+        groupSelect.appendChild(opt);
+      });
+    }
+
+    function initAcquisitionFilter() {
+      const acquisitionSelect = document.getElementById("acquisitionFilter");
+      if (!acquisitionSelect) return;
+
+      acquisitionSelect.innerHTML = "";
+      const optAll = document.createElement("option");
+      optAll.value = "ALL";
+      optAll.textContent = "Tutti";
+      optAll.selected = true;
+      acquisitionSelect.appendChild(optAll);
+
+      const set = new Set();
+      fleetData.forEach(row => {
+        const val = row["ACQUISIZIONE"];
+        if (val !== null && val !== undefined && String(val).trim() !== "") {
+          set.add(String(val).trim());
+        }
+      });
+      bookingsData.forEach(row => {
+        const val = row["acquisizione"];
+        if (val !== null && val !== undefined && String(val).trim() !== "") {
+          set.add(String(val).trim());
+        }
+      });
+
+      Array.from(set).sort().forEach(a => {
+        const opt = document.createElement("option");
+        opt.value = a;
+        opt.textContent = a;
+        acquisitionSelect.appendChild(opt);
+      });
+    }
+
+    function normalizeStationName(name) {
+      if (name === null || name === undefined) return null;
+      const lower = String(name).trim().toLowerCase();
+      if (!lower) return null;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    }
+
+    function initStationFilter() {
+      const stationSelect = document.getElementById("stationFilter");
+      if (!stationSelect) return;
+
+      stationSelect.innerHTML = "";
+      const optAll = document.createElement("option");
+      optAll.value = "ALL";
+      optAll.textContent = "Tutti";
+      optAll.selected = true;
+      stationSelect.appendChild(optAll);
+
+      const set = new Set();
+
+      fleetStationsData.forEach(row => {
+        const raw = row["station"];
+        const norm = normalizeStationName(raw);
+        if (norm) set.add(norm);
+      });
+
+      bookingsData.forEach(row => {
+        const raw = row["stazione"];
+        const norm = normalizeStationName(raw);
+        if (norm) set.add(norm);
+      });
+
+      Array.from(set)
+        .sort()
+        .forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = s;
+          opt.textContent = s;
+          stationSelect.appendChild(opt);
+        });
+    }
+
+    function initFilterEvents() {
+      const filterIds = [
+        "yearFilter",
+        "monthFilter",
+        "groupFilter",
+        "acquisitionFilter",
+        "stationFilter",
+        "projectionSelect"
+      ];
+      filterIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener("change", applyFiltersAndRender);
+        }
+      });
+    }
+
+    function getMultiSelectValues(selectId) {
+      const select = document.getElementById(selectId);
+      if (!select) return [];
+
+      const values = Array.from(select.selectedOptions).map(o => o.value);
+      if (values.includes("ALL")) {
+        return []; // nessun filtro
+      }
+      return values;
+    }
+
+    function resetFilters() {
+      ["yearFilter","monthFilter","groupFilter","acquisitionFilter","stationFilter"]
+        .forEach(id => {
+          const select = document.getElementById(id);
+          if (!select) return;
+
+          Array.from(select.options).forEach(opt => {
+            opt.selected = (opt.value === "ALL");
+          });
+        });
+
+      const proj = document.getElementById("projectionSelect");
+      if (proj) proj.value = "0.10";
+
+      applyFiltersAndRender();
+    }
+
+    // =========================
+    // DATE HELPERS
+    // =========================
+    function parseDate(value) {
+      if (value === null || value === undefined) return null;
+
+      if (typeof value === "number") {
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      let str = String(value).trim();
+      if (!str) return null;
+
+      if (/^\d+$/.test(str)) {
+        const ms = parseInt(str, 10);
+        const d = new Date(ms);
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+        const [dStr, mStr, yStr] = str.split("/");
+        const d = new Date(parseInt(yStr, 10), parseInt(mStr, 10) - 1, parseInt(dStr, 10));
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      const d = new Date(str);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function formatYearMonthKey(year, month) {
+      return year + "-" + String(month).padStart(2, "0");
+    }
+
+    function getMonthIndexGlobal(year, month) {
+      return (year - 2024) * 12 + (month - 1);
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    // =========================
+    // CORE: APPLY FILTERS
+    // =========================
+    function applyFiltersAndRender() {
+      const selectedYears = getMultiSelectValues("yearFilter").map(v => parseInt(v, 10));
+      const selectedMonths = getMultiSelectValues("monthFilter").map(v => parseInt(v, 10));
+      const selectedGroups = getMultiSelectValues("groupFilter");
+      const selectedAcquisition = getMultiSelectValues("acquisitionFilter");
+      const selectedStations = getMultiSelectValues("stationFilter");
+      const projectionFactor = parseFloat(
+        (document.getElementById("projectionSelect") || {}).value || "0.10"
+      );
+
+      baseAggregates = computeMonthlyAggregatesBase({
+        groups: selectedGroups,
+        acquisitions: selectedAcquisition,
+        stations: selectedStations,
+        projectionFactor
+      });
+
+      monthlyAggregates = baseAggregates.filter(b => {
+        const yearOk = selectedYears.length === 0 || selectedYears.includes(b.year);
+        const monthOk = selectedMonths.length === 0 || selectedMonths.includes(b.month);
+        return yearOk && monthOk;
+      });
+
+      updateKpiCards();
+    }
+
+    // =========================
+    // AGGREGATION LOGIC (BASE)
+    // =========================
+    function computeMonthlyAggregatesBase(filters) {
+      const { groups, acquisitions, stations, projectionFactor } = filters;
+
+      const monthlyMap = new Map();
+      for (let year = 2024; year <= 2026; year++) {
+        for (let month = 1; month <= 12; month++) {
+          const key = formatYearMonthKey(year, month);
+          monthlyMap.set(key, {
+            year,
+            month,
+            key,
+            label: MONTH_LABELS_IT[month - 1].slice(0, 3) + " " + year,
+            fleetSize: 0,
+            canoneImponibile: 0,
+            canoneIvato: 0,
+            assicurazione: 0,
+            costoTotale: 0,
+            revenue: 0,
+            revenueDays: 0,
+            revenuePerDay: 0,
+            numBookings: 0,
+            noleggiati: 0
+          });
+        }
+      }
+
+      // 1) Flotta
+      fleetData.forEach(row => {
+        const gruppoCanonico = canonicalGroup(row["GRUPPO"]);
+        if (!gruppoCanonico) return;
+        if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
+
+        const acquisizione = row["ACQUISIZIONE"];
+        if (
+          acquisitions.length > 0 &&
+          (!acquisizione || !acquisitions.includes(String(acquisizione).trim()))
+        ) {
+          return;
+        }
+
+        const start = parseDate(row["DATA INIZIO"]);
+        const effectiveEnd = parseDate(row["RICONSEGNA EFFETTIVA"]);
+        const plannedEnd = parseDate(row["DATA FINE"]);
+
+        const startDate = start;
+        const endDate = effectiveEnd || plannedEnd;
+        if (!startDate || !endDate) return;
+        if (endDate < startDate) return;
+
+        const canoneImp =
+          parseFloat(String(row["CANONE IMPONIBILE"] ?? "0").replace(",", ".")) || 0;
+        const canoneIvato =
+          parseFloat(String(row["CANONE IVATO"] ?? "0").replace(",", ".")) || 0;
+        const coperturaAss =
+          parseFloat(String(row["COPERTURA ASS."] ?? "0").replace(",", ".")) || 0;
+
+        const startYear = Math.max(2024, startDate.getFullYear());
+        const endYear = Math.min(2026, endDate.getFullYear());
+
+        for (let year = startYear; year <= endYear; year++) {
+          const monthStart =
+            year === startDate.getFullYear() ? startDate.getMonth() + 1 : 1;
+          const monthEnd =
+            year === endDate.getFullYear() ? endDate.getMonth() + 1 : 12;
+
+          for (let month = monthStart; month <= monthEnd; month++) {
+            const key = formatYearMonthKey(year, month);
+            const bucket = monthlyMap.get(key);
+            if (!bucket) continue;
+
+            bucket.fleetSize += 1;
+            bucket.canoneImponibile += canoneImp;
+            bucket.canoneIvato += canoneIvato;
+            bucket.assicurazione += coperturaAss;
+            bucket.costoTotale += canoneImp + coperturaAss;
+          }
+        }
+      });
+
+      // 2) Filtro stazione su flotta (per year/month/group)
+      applyStationFilterToFleet(monthlyMap, groups, stations);
+
+      // 3) Prenotazioni
+      bookingsData.forEach(row => {
+        const gruppoCanonico = canonicalGroup(row["cartype"] ?? row["gruppo"]);
+        if (!gruppoCanonico) return;
+        if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
+
+        const rawStation = row["stazione"];
+        const stationNorm = normalizeStationName(rawStation);
+        if (stations.length > 0 && (!stationNorm || !stations.includes(stationNorm))) {
+          return;
+        }
+
+        const acquisizioneBooking = row["acquisizione"];
+        if (
+          acquisitions.length > 0 &&
+          (!acquisizioneBooking ||
+            !acquisitions.includes(String(acquisizioneBooking).trim()))
+        ) {
+          return;
+        }
+
+        const fromDate = parseDate(row["startDate"]);
+        if (!fromDate) return;
+
+        let days = parseFloat(row["duration"] ?? 0);
+        if (!isFinite(days)) days = 0;
+        if (days < 1) days = 1;
+
+        const revenue =
+          parseFloat(String(row["price"] ?? "0").toString().replace(",", ".")) || 0;
+
+        const year = fromDate.getFullYear();
+        const month = fromDate.getMonth() + 1;
+        if (year < 2024 || year > 2026) return;
+
+        const key = formatYearMonthKey(year, month);
+        const bucket = monthlyMap.get(key);
+        if (!bucket) return;
+
+        bucket.revenue += revenue;
+        bucket.revenueDays += days;
+        bucket.numBookings += 1;
+      });
+
+      // 3b) revenue/day e noleggiati
+      monthlyMap.forEach(bucket => {
+        if (bucket.revenueDays > 0) {
+          bucket.revenuePerDay = bucket.revenue / bucket.revenueDays;
+        } else {
+          bucket.revenuePerDay = 0;
+        }
+
+        const fleetAvailable = bucket.fleetSize;
+        if (fleetAvailable > 0 && bucket.revenueDays > 0) {
+          const utilization = bucket.revenueDays / (fleetAvailable * 30);
+          bucket.noleggiati = utilization * fleetAvailable;
+        } else {
+          bucket.noleggiati = 0;
+        }
+      });
+
+      // 4) Proiezioni 2026
+      if (!isNaN(projectionFactor) && projectionFactor !== 0) {
+        monthlyMap.forEach(bucket => {
+          if (bucket.year === 2026) {
+            const factor = 1 + projectionFactor;
+            bucket.fleetSize *= factor;
+            bucket.canoneImponibile *= factor;
+            bucket.canoneIvato *= factor;
+            bucket.assicurazione *= factor;
+            bucket.costoTotale *= factor;
+            bucket.revenue *= factor;
+            bucket.revenuePerDay *= factor;
+            bucket.numBookings *= factor;
+            bucket.noleggiati *= factor;
+          }
+        });
+      }
+
+      const result = Array.from(monthlyMap.values()).sort((a, b) => {
+        const ia = getMonthIndexGlobal(a.year, a.month);
+        const ib = getMonthIndexGlobal(b.year, b.month);
+        return ia - ib;
+      });
+
+      return result;
+    }
+
+    // =========================
+    // STATION FILTER (flotta) via fleetStations2025
+    // =========================
+    function applyStationFilterToFleet(monthlyMap, groups, stations) {
+      if (!fleetStationsData || fleetStationsData.length === 0) return;
+      if (!stations || stations.length === 0) return;
+
+      const monthStats = new Map();
+
+      fleetStationsData.forEach(row => {
+        const gruppoCanonico = canonicalGroup(row["group"]);
+        if (!gruppoCanonico) return;
+        if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
+
+        const rawStation = row["station"];
+        const stationNorm = normalizeStationName(rawStation);
+        if (!stationNorm) return;
+
+        const year = parseInt(row["year"], 10);
+        const month = parseInt(row["month"], 10);
+        if (!year || !month) return;
+
+        const key = formatYearMonthKey(year, month);
+        const fleetCount =
+          parseFloat(String(row["fleet"] ?? 0).toString().replace(",", ".")) || 0;
+
+        if (!monthStats.has(key)) {
+          monthStats.set(key, { all: 0, selected: 0 });
+        }
+        const stats = monthStats.get(key);
+        stats.all += fleetCount;
+        if (stations.includes(stationNorm)) {
+          stats.selected += fleetCount;
+        }
+      });
+
+      monthlyMap.forEach((bucket, key) => {
+        const stats = monthStats.get(key);
+        if (!stats || stats.all <= 0 || stats.selected <= 0) return;
+
+        const factor = stats.selected / stats.all;
+        if (!isFinite(factor) || factor <= 0) return;
+
+        bucket.fleetSize *= factor;
+        bucket.canoneImponibile *= factor;
+        bucket.canoneIvato *= factor;
+        bucket.assicurazione *= factor;
+        bucket.costoTotale *= factor;
+      });
+    }
+
+    // =========================
+    // KPI
+    // =========================
+    function updateKpiCards() {
+      if (!monthlyAggregates || monthlyAggregates.length === 0) {
+        resetKpiDisplay();
+        return;
+      }
+
+      const indicesCurrent = monthlyAggregates.map(b =>
+        getMonthIndexGlobal(b.year, b.month)
+      );
+      const minIdx = Math.min(...indicesCurrent);
+      const maxIdx = Math.max(...indicesCurrent);
+      const lengthRange = maxIdx - minIdx + 1;
+
+      const prevEnd = minIdx - 1;
+      const prevStart = prevEnd - (lengthRange - 1);
+
+      const prevStartClamped = clamp(prevStart, 0, 35);
+      const prevEndClamped = clamp(prevEnd, 0, 35);
+
+      function sumForIndices(indicesSet) {
+        const res = {
+          fleetSize: 0,
+          canoneImponibile: 0,
+          canoneIvato: 0,
+          assicurazione: 0,
+          costoTotale: 0,
+          revenue: 0,
+          revenuePerDay: 0,
+          numBookings: 0,
+          noleggiati: 0,
+          totalRevenueDays: 0
+        };
+
+        baseAggregates.forEach(b => {
+          const idx = getMonthIndexGlobal(b.year, b.month);
+          if (indicesSet.has(idx)) {
+            res.fleetSize += b.fleetSize;
+            res.canoneImponibile += b.canoneImponibile;
+            res.canoneIvato += b.canoneIvato;
+            res.assicurazione += b.assicurazione;
+            res.costoTotale += b.costoTotale;
+            res.revenue += b.revenue;
+            res.numBookings += b.numBookings;
+            res.noleggiati += b.noleggiati;
+            res.totalRevenueDays += b.revenueDays || 0;
+          }
+        });
+
+        if (res.totalRevenueDays > 0) {
+          res.revenuePerDay = res.revenue / res.totalRevenueDays;
+        } else {
+          res.revenuePerDay = 0;
+        }
+        return res;
+      }
+
+      const currentIndicesSet = new Set();
+      for (let i = minIdx; i <= maxIdx; i++) currentIndicesSet.add(i);
+
+      const prevIndicesSet = new Set();
+      for (let i = prevStartClamped; i <= prevEndClamped; i++) {
+        if (i >= 0 && i < 36) prevIndicesSet.add(i);
+      }
+
+      const current = sumForIndices(currentIndicesSet);
+      const prev = sumForIndices(prevIndicesSet);
+
+      function setKpi(idCurrent, idPrev, idDiff, currVal, prevVal, options = {}) {
+        const elCurr = document.getElementById(idCurrent);
+        const elPrev = document.getElementById(idPrev);
+        const elDiff = document.getElementById(idDiff);
+        if (!elCurr || !elPrev || !elDiff) return;
+
+        const isCurrency = options.currency === true;
+        const decimals = options.decimals ?? 0;
+
+        function formatNumber(v) {
+          if (!isFinite(v)) return "–";
+          if (isCurrency) {
+            return (
+              "€ " +
+              v.toLocaleString("it-IT", {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+              })
+            );
+          }
+          return v.toLocaleString("it-IT", {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+          });
+        }
+
+        elCurr.textContent = formatNumber(currVal);
+        elPrev.textContent = prevVal && prevVal !== 0 ? formatNumber(prevVal) : "–";
+
+        let diffPerc = null;
+        if (prevVal && prevVal !== 0) {
+          diffPerc = ((currVal - prevVal) / prevVal) * 100;
+        }
+
+        elDiff.classList.remove("positive","negative","neutral");
+        if (diffPerc === null) {
+          elDiff.textContent = "↔︎ 0%";
+          elDiff.classList.add("neutral");
+        } else if (diffPerc > 0) {
+          elDiff.textContent = "📈 +" + diffPerc.toFixed(1) + "%";
+          elDiff.classList.add("positive");
+        } else if (diffPerc < 0) {
+          elDiff.textContent = "📉 " + diffPerc.toFixed(1) + "%";
+          elDiff.classList.add("negative");
+        } else {
+          elDiff.textContent = "↔︎ 0%";
+          elDiff.classList.add("neutral");
+        }
+      }
+
+      const monthsCountCurrent = currentIndicesSet.size || 1;
+      const monthsCountPrev = prevIndicesSet.size || 1;
+      const fleetCurrAvg = current.fleetSize / monthsCountCurrent;
+      const fleetPrevAvg = prev.fleetSize / monthsCountPrev;
+
+      setKpi(
+        "kpi-fleet-current",
+        "kpi-fleet-prev",
+        "kpi-fleet-diff",
+        fleetCurrAvg,
+        fleetPrevAvg,
+        { currency: false, decimals: 1 }
+      );
+
+      setKpi(
+        "kpi-canone-current",
+        "kpi-canone-prev",
+        "kpi-canone-diff",
+        current.canoneImponibile,
+        prev.canoneImponibile,
+        { currency: true, decimals: 0 }
+      );
+
+      const elCanIvato = document.getElementById("kpi-canone-ivato-current");
+      if (elCanIvato) {
+        elCanIvato.textContent =
+          current.canoneIvato > 0
+            ? "€ " +
+              current.canoneIvato.toLocaleString("it-IT", {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+              })
+            : "–";
+      }
+
+      setKpi(
+        "kpi-assicurazione-current",
+        "kpi-assicurazione-prev",
+        "kpi-assicurazione-diff",
+        current.assicurazione,
+        prev.assicurazione,
+        { currency: true, decimals: 0 }
+      );
+
+      setKpi(
+        "kpi-costo-current",
+        "kpi-costo-prev",
+        "kpi-costo-diff",
+        current.costoTotale,
+        prev.costoTotale,
+        { currency: true, decimals: 0 }
+      );
+
+      setKpi(
+        "kpi-revenue-current",
+        "kpi-revenue-prev",
+        "kpi-revenue-diff",
+        current.revenue,
+        prev.revenue,
+        { currency: true, decimals: 0 }
+      );
+
+      setKpi(
+        "kpi-revday-current",
+        "kpi-revday-prev",
+        "kpi-revday-diff",
+        current.revenuePerDay,
+        prev.revenuePerDay,
+        { currency: true, decimals: 2 }
+      );
+
+      setKpi(
+        "kpi-bookings-current",
+        "kpi-bookings-prev",
+        "kpi-bookings-diff",
+        current.numBookings,
+        prev.numBookings,
+        { currency: false, decimals: 0 }
+      );
+
+      setKpi(
+        "kpi-noleggiati-current",
+        "kpi-noleggiati-prev",
+        "kpi-noleggiati-diff",
+        current.noleggiati,
+        prev.noleggiati,
+        { currency: false, decimals: 1 }
+      );
+    }
+
+    function resetKpiDisplay() {
+      const ids = [
+        "kpi-fleet-current","kpi-fleet-prev","kpi-fleet-diff",
+        "kpi-canone-current","kpi-canone-prev","kpi-canone-diff",
+        "kpi-canone-ivato-current",
+        "kpi-assicurazione-current","kpi-assicurazione-prev","kpi-assicurazione-diff",
+        "kpi-costo-current","kpi-costo-prev","kpi-costo-diff",
+        "kpi-revenue-current","kpi-revenue-prev","kpi-revenue-diff",
+        "kpi-revday-current","kpi-revday-prev","kpi-revday-diff",
+        "kpi-bookings-current","kpi-bookings-prev","kpi-bookings-diff",
+        "kpi-noleggiati-current","kpi-noleggiati-prev","kpi-noleggiati-diff"
+      ];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = "–";
+        if (el.classList) {
+          el.classList.remove("positive","negative");
+          el.classList.add("neutral");
+        }
+      });
+    }
+
+  
+    // =========================
+    // EXPORT CSV
+    // =========================
+    function exportCsv() {
+      if (!monthlyAggregates || monthlyAggregates.length === 0) {
+        alert("Nessun dato da esportare.");
+        return;
+      }
+
+      const header = [
+        "Anno","Mese","Label","FleetSize","CanoneImponibile","CanoneIvato",
+        "Assicurazione","CostoTotale","Revenue","RevenuePerDay","NumBookings","Noleggiati"
+      ];
+
+      const rows = monthlyAggregates.map(b => [
+        b.year,
+        b.month,
+        b.label,
+        b.fleetSize,
+        b.canoneImponibile,
+        b.canoneIvato,
+        b.assicurazione,
+        b.costoTotale,
+        b.revenue,
+        b.revenuePerDay,
+        b.numBookings,
+        b.noleggiati
+      ]);
+
+      let csvContent = header.join(";") + "\n";
+      rows.forEach(r => {
+        csvContent += r.join(";") + "\n";
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "dashboard_fleet_bookings.csv";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
